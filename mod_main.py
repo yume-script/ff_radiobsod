@@ -51,6 +51,11 @@ class ModuleMain(PluginModuleBase):
                 direct = RadioHandler.resolve(arg1)
                 url = ToolUtil.make_apikey_url(f"/{P.package_name}/api/url?ch_id={arg1}")
                 return jsonify({"ret": "success", "data": url, "direct": direct})
+            elif command == "discover":
+                found = RadioHandler.discover_kbs()
+                unnamed = sum(1 for c in found if c["region"] == "기타")
+                return jsonify({"ret": "success",
+                                "msg": f"KBS 새 채널 {len(found)}개 발견 (지역 미분류 {unnamed}개). 목록 새로고침 후 확인하세요."})
             elif command == "refresh":
                 n = RadioHandler.warm()
                 return jsonify({"ret": "success", "msg": f"{n}개 채널 주소 갱신 완료"})

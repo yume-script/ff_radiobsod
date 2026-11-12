@@ -27,6 +27,19 @@ DEFAULT_CHANNELS = [
      "url": "https://ebsonair.ebs.co.kr/cloud1/iradio/playlist.m3u8"},
 ]
 
+REGION_KEYWORDS = [
+    ("수도권", ["서울", "경기", "인천", "수원", "성남", "seoul", "incheon", "suwon"]),
+    ("부산·울산·경남", ["부산", "울산", "창원", "진주", "경남", "busan", "ulsan", "changwon", "jinju"]),
+    ("대구·경북", ["대구", "안동", "포항", "경북", "daegu", "andong", "pohang"]),
+    ("광주·전남", ["광주", "목포", "순천", "여수", "전남", "gwangju", "mokpo", "suncheon", "yeosu"]),
+    ("전북", ["전주", "전북", "jeonju"]),
+    ("대전·세종·충남", ["대전", "세종", "충남", "daejeon", "sejong"]),
+    ("충북", ["청주", "충주", "충북", "cheongju", "chungju"]),
+    ("강원", ["춘천", "강릉", "원주", "강원", "chuncheon", "gangneung", "wonju"]),
+    ("제주", ["제주", "jeju"]),
+]
+NAME_KEYS = ("channel_name", "channel_title", "ch_name", "title", "name")
+
 _cache = {}
 
 
@@ -37,9 +50,20 @@ class RadioHandler:
         return os.path.join(F.config["path_data"], "db", f"{P.package_name}_custom_channels.json")
 
     @classmethod
+    def discovered_path(cls):
+        return os.path.join(F.config["path_data"], "db", f"{P.package_name}_discovered_channels.json")
+
+    @classmethod
     def channels(cls):
         """기본 채널 + 사용자 추가 채널(custom json, 같은 id면 덮어씀)."""
         chs = {c["id"]: dict(c) for c in DEFAULT_CHANNELS}
+        try:
+            if os.path.exists(cls.discovered_path()):
+                with open(cls.discovered_path(), encoding="utf-8") as f:
+                    for c in json.load(f):
+                        chs.setdefault(c["id"], c)
+        except Exception as e:
+            P.logger.error(f"discovered channels 읽기 실패: {e}")
         try:
             if os.path.exists(cls.custom_path()):
                 with open(cls.custom_path(), encoding="utf-8") as f:
@@ -98,6 +122,56 @@ class RadioHandler:
             url = cls._resolve_mbc(ch["code"])
         _cache[ch_id] = (time.time(), url)
         return url
+
+    @classmethod
+    def _guess_region(cls, text):
+        for region, kws in REGION_KEYWORDS:
+            if any(k in text.lower() for k in kws):
+                return region
+        return "기타"
+
+    @classmethod
+    def discover_kbs(cls, start=1, end=150):
+        """KBS 채널코드를 훑어 라디오 채널을 찾아 저장. 이름 필드가 없으면 호스트명으로 임시 이름."""
+        import requests
+        from concurrent.futures import ThreadPoolExecutor
+        from urllib.parse import urlparse
+
+        def one(code):
+            try:
+                r = requests.get(f"https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/{code}",
+                                 headers=UA, timeout=10)
+                items = r.json().get("channel_item") or []
+                it = items[0] if items else {}
+                url = it.get("service_url") or ""
+                if not url:
+                    return None
+                host = urlparse(url).netloc.lower()
+                path = urlparse(url).path.lower()
+                if not any(k in host + path for k in ("radio", "fm")):
+                    return None  # TV 등 제외
+                name = next((str(it[k]) for k in NAME_KEYS if it.get(k)), "")
+                return code, host, name
+            except Exception:
+                return None
+
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            found = [x for x in ex.map(one, range(start, end + 1)) if x]
+
+        known = {c["code"] for c in DEFAULT_CHANNELS if c["type"] == "kbs"}
+        out = []
+        for code, host, name in found:
+            if str(code) in known:
+                continue
+            label = name or host.split(".")[0]
+            if not label.upper().startswith("KBS"):
+                label = f"KBS {label}"
+            out.append({"id": f"kbs_{code}", "region": cls._guess_region(label + host),
+                        "name": label, "type": "kbs", "code": str(code)})
+            P.logger.info(f"KBS 탐색: code={code} host={host} name={name!r}")
+        with open(cls.discovered_path(), "w", encoding="utf-8") as f:
+            json.dump(out, f, ensure_ascii=False, indent=2)
+        return out
 
     @classmethod
     def warm(cls):

@@ -1,5 +1,5 @@
 title: "라디오BSOD"
-version: "0.2.0"
+version: "0.2.1"
 package_name: "ff_radiobsod"
 developer: "me"
 description: "국내 라디오 채널 스트림 FF플러그인 (KBS/MBC/EBS)"

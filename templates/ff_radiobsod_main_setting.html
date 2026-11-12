@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-{{ macros.m_button_group([['globalSettingSaveBtn', '설정 저장'], ['refreshBtn', '채널 주소 갱신']])}}
+{{ macros.m_button_group([['globalSettingSaveBtn', '설정 저장'], ['refreshBtn', '채널 주소 갱신'], ['discoverBtn', 'KBS 채널 자동 탐색']])}}
 {{ macros.m_row_start('5') }}
 {{ macros.m_row_end() }}
 
@@ -36,6 +36,13 @@
 </form>
 
 <script type="text/javascript">
+$("body").on('click', '#discoverBtn', function (e) {
+  e.preventDefault();
+  notify('탐색 중... 최대 1분 걸립니다', 'info');
+  globalSendCommand('discover', null, null, null, function (ret) {
+    notify(ret.msg, ret.ret == 'success' ? 'success' : 'danger');
+  });
+});
 $("body").on('click', '#refreshBtn', function (e) {
   e.preventDefault();
   globalSendCommand('refresh', null, null, null, function (ret) {

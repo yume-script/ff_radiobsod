@@ -12,6 +12,9 @@
 ## 기본 채널 (수도권)
 KBS 1라디오·2라디오·3라디오·1FM·2FM·한민족방송, MBC 표준FM·FM4U·mini 올댓뮤직, EBS FM
 
+## 자동 탐색
+설정 화면의 'KBS 채널 자동 탐색' 버튼이 KBS 채널코드(1~150)를 훑어 라디오 채널을 `ff_radiobsod_discovered_channels.json` 에 저장한다. (지역 분류는 이름의 지역 키워드 기반, 못 찾으면 '기타')
+
 ## 채널 추가
 `data/db/ff_radiobsod_custom_channels.json` 에 JSON 배열로 작성 (같은 id 면 기본값을 덮어씀).
 
