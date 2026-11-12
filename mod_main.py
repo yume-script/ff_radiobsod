@@ -4,7 +4,17 @@ from tool import ToolUtil
 from flask import Response
 
 from .setup import *
-from .source_radio_handler import RadioHandler
+import os
+
+try:
+    if os.path.exists(os.path.join(os.path.dirname(__file__), "source_radio_handler.py")):
+        from .source_radio_handler import RadioHandler
+    else:
+        raise ImportError("source_radio_handler.py not found")
+except Exception as e:
+    P.logger.error(f"handler import error: {str(e)}")
+    P.logger.error(traceback.format_exc())
+    RadioHandler = None
 
 
 class ModuleMain(PluginModuleBase):

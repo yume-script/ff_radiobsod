@@ -5,7 +5,6 @@ import re
 import traceback
 from urllib.parse import urljoin
 
-import requests
 from flask import Response, redirect, jsonify
 
 from .setup import P, F
@@ -40,6 +39,7 @@ class RadioHandler:
     # ------------------------------------------------------------ scrape
     @classmethod
     def _fetch(cls, url):
+        import requests
         r = requests.get(url, headers=UA, timeout=20)
         r.raise_for_status()
         r.encoding = r.encoding or "utf-8"

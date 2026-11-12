@@ -1,26 +1,126 @@
 {% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+{% endblock %}
+
 {% block content %}
-<div>
-  <div id="updated" style="margin:8px 0;"></div>
-  <div id="list"></div>
+<style type="text/css">
+  #result_table.table tbody { display: block; max-height: 1000px; overflow-y: auto; }
+  #result_table.table thead, #result_table.table tbody tr { display: table; width:100%; table-layout: fixed; }
+</style>
+
+<div class="container col-sm-8 d-flex justify-content-center align-items-center mt-0 mb-0 flex-column">
+  <audio id="player" controls playsinline style="width: 100%;"></audio>
+  <p class="text-sm ml-1 mb-0"><span id="play_info" class="align-text-top"></span></p>
 </div>
-<script>
-function load() {
+
+<div>
+  {{ macros.m_button_group([['list_channel_reload_btn', '새로고침']])}}
+  <p class="mt-2 mb-1 text-sm small text-muted"><span id="list_info" class="ml-1">없음</span></p>
+  <div id="list_div" class="mb-3">
+    <table id="result_table" class="table table-sm table-striped table-hover">
+      <thead class="thead-dark">
+        <tr>
+          <th style="width:8%; text-align:center;">#</th>
+          <th style="width:25%; text-align:left;">지역</th>
+          <th style="width:47%; text-align:left;">채널</th>
+          <th style="width:20%; text-align:center;">Action</th>
+        </tr>
+      </thead>
+      <tbody id="channel-list"></tbody>
+    </table>
+  </div>
+</div>
+
+<script type="text/javascript">
+var channelScroller = document.querySelector('#channel-list');
+var player = document.getElementById('player');
+var hls;
+var CH = {};
+
+$(document).ready(function(){ load_channel_list(); });
+
+function load_channel_list() {
+  reset_channel_list('로딩중...');
   globalSendCommand('broad_list', null, null, null, function(ret){
-    $("#updated").text("갱신: " + ret.updated_at + " / 총 " + ret.list.length + "개");
-    var groups = {};
-    ret.list.forEach(function(c){ (groups[c.region || '미분류'] = groups[c.region || '미분류'] || []).push(c); });
-    var html = "";
-    Object.keys(groups).forEach(function(g){
-      html += "<h5 style='margin-top:16px'>" + g + "</h5><table class='table table-sm'>";
-      groups[g].forEach(function(c){
-        html += "<tr><td style='width:25%'>" + c.name + "</td><td style='word-break:break-all'>" + c.url + "</td></tr>";
-      });
-      html += "</table>";
-    });
-    $("#list").html(html);
+    $('#list_info').html(`마지막 업데이트: ${ret.updated_at} / 총 ${ret.list.length}개`);
+    make_channel_list(ret.list);
   });
 }
-load();
+
+$("body").on('click', '#list_channel_reload_btn', function(e) {
+  e.preventDefault();
+  load_channel_list();
+});
+
+function get_play_url(channel_id, callback) {
+  globalSendCommand('play_url', channel_id, null, null, function(ret){
+    if (ret.data == null) { notify('에러', 'danger'); return; }
+    callback(ret);
+  });
+}
+
+function loadSource(url, raw) {
+  if (hls) { hls.destroy(); hls = null; }
+  if (raw.indexOf('.m3u8') >= 0 && window.Hls && Hls.isSupported()) {
+    hls = new Hls();
+    hls.loadSource(url);
+    hls.attachMedia(player);
+    hls.on(Hls.Events.MANIFEST_PARSED, function(){ player.play(); });
+  } else {
+    player.src = url;
+    player.play();
+  }
+}
+
+$("body").on('click', '#play_btn', function(e){
+  e.preventDefault();
+  let id = $(this).closest('tr').prop('title');
+  get_play_url(id, function(ret) {
+    $('#play_info').html(CH[id].region + ' - ' + CH[id].name);
+    loadSource(ret.data, CH[id].url);
+  });
+});
+
+$("body").on('click', '#play_url_btn', function(e){
+  e.preventDefault();
+  let id = $(this).closest('tr').prop('title');
+  get_play_url(id, function(ret) {
+    str = ret.data + '<br><br>' + CH[id].url + '<br><br>';
+    tmp = j_button('globalCliboardBtn', '클립보드 복사', {'text':ret.data}, 'success');
+    tmp += j_button('globalOpenBtn', '새창에서 열기', {'url':ret.data}, 'success');
+    str += j_button_group(tmp);
+    showModal(str, `${CH[id].region} - ${CH[id].name}`, false);
+  });
+});
+
+function make_channel_list(data) {
+  if (data == null) return;
+  reset_channel_list();
+  let count = 0;
+  for (let i in data) {
+    CH[data[i].id] = data[i];
+    let tr = document.createElement('tr');
+    tr.title = data[i].id;
+    let buttons = '';
+    buttons += j_button('play_btn', '<i class="fa fa-play px-1" aria-hidden="true"></i>', {}, 'secondary', false, true);
+    buttons += j_button('play_url_btn', '<i class="fa fa-external-link px-1" aria-hidden="true"></i>', {}, 'secondary', false, true);
+    buttons = j_button_group(buttons);
+    tr.innerHTML = `<td style="width:8%; text-align:center;">${parseInt(i)+1}</td>
+      <td style="width:25%;" class="text-truncate">${data[i].region || ''}</td>
+      <td style="width:47%;" class="text-truncate">${data[i].name || ''}</td>
+      <td style="width:20%; text-align:center;">${buttons}</td>`;
+    channelScroller.appendChild(tr);
+    count++;
+  }
+  if (count == 0) reset_channel_list('데이터가 없습니다.');
+}
+
+function reset_channel_list(msg='') {
+  channelScroller.querySelectorAll('tr').forEach(e => e.remove());
+  if (msg) channelScroller.insertAdjacentHTML('beforeend', `<tr><td colspan="4">${msg}</td></tr>`);
+}
 </script>
 {% endblock %}
