@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<div>
+  {{ macros.m_button_group([['globalSettingSaveBtn', '설정 저장'], ['syncBtn', '지금 동기화']]) }}
+  {{ macros.m_row_start('5') }}{{ macros.m_row_end() }}
+  <form id="setting">
+    {{ macros.setting_global_scheduler_sub_button(arg['is_include'], arg['is_running']) }}
+    {{ macros.setting_input_text('main_interval', '동기화 주기', value=arg['main_interval'], desc=['분 단위 또는 Cron']) }}
+    {{ macros.setting_checkbox('main_auto_start', '시작 시 자동실행', value=arg['main_auto_start']) }}
+    {{ macros.setting_input_text('source_url', '소스 URL', value=arg['source_url']) }}
+    {{ macros.setting_input_text('region_filter', '지역 필터', value=arg['region_filter'], desc=['비우면 전체. 쉼표 구분 (예: 광주·전남,수도권)']) }}
+    {{ macros.setting_select('m3u_url_type', 'M3U 주소 방식', [['redirect','플러그인 경유'],['direct','원본 URL']], value=arg['m3u_url_type']) }}
+    {{ macros.setting_input_text_and_buttons('api_m3u', 'M3U', [['copy_m3u', '복사']], value=arg['api_m3u']) }}
+    {{ macros.setting_input_text_and_buttons('api_json', 'JSON', [['copy_json', '복사']], value=arg['api_json']) }}
+  </form>
+</div>
+<script>
+$("#syncBtn").click(function(e){
+  e.preventDefault();
+  globalSendCommand('sync', null, null, null, function(ret){ $.notify(ret.msg, {type:'success'}); });
+});
+$("#copy_m3u").click(function(e){ e.preventDefault(); navigator.clipboard.writeText($("#api_m3u").val()); });
+$("#copy_json").click(function(e){ e.preventDefault(); navigator.clipboard.writeText($("#api_json").val()); });
+</script>
+{% endblock %}

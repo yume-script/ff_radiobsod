@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div>
+  <div id="updated" style="margin:8px 0;"></div>
+  <div id="list"></div>
+</div>
+<script>
+function load() {
+  globalSendCommand('broad_list', null, null, null, function(ret){
+    $("#updated").text("갱신: " + ret.updated_at + " / 총 " + ret.list.length + "개");
+    var groups = {};
+    ret.list.forEach(function(c){ (groups[c.region || '미분류'] = groups[c.region || '미분류'] || []).push(c); });
+    var html = "";
+    Object.keys(groups).forEach(function(g){
+      html += "<h5 style='margin-top:16px'>" + g + "</h5><table class='table table-sm'>";
+      groups[g].forEach(function(c){
+        html += "<tr><td style='width:25%'>" + c.name + "</td><td style='word-break:break-all'>" + c.url + "</td></tr>";
+      });
+      html += "</table>";
+    });
+    $("#list").html(html);
+  });
+}
+load();
+</script>
+{% endblock %}

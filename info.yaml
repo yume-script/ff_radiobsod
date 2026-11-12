@@ -1,0 +1,7 @@
+title: "라디오 BSOD"
+version: "0.1.0"
+package_name: "ff_radiobsod"
+developer: "me"
+description: "radio.bsod.kr 의 지역별 라디오 채널 스트림 URL을 수집해 M3U/JSON 으로 제공"
+home: ""
+more: ""
