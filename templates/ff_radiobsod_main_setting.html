@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-{{ macros.m_button_group([['globalSettingSaveBtn', '설정 저장'], ['syncBtn', '지금 동기화']])}}
+{{ macros.m_button_group([['globalSettingSaveBtn', '설정 저장'], ['refreshBtn', '채널 주소 갱신']])}}
 {{ macros.m_row_start('5') }}
 {{ macros.m_row_end() }}
 
@@ -19,17 +19,13 @@
     {% endif %}
     <div class="row mb-2"><div class="col-sm-3"><b>동기화 주기</b></div>
       <div class="col-sm-9"><input type="text" class="form-control form-control-sm" id="main_interval" name="main_interval" value="{{ arg['main_interval'] }}">
-      <small class="text-muted">분 단위 또는 Cron</small></div></div>
+      <small class="text-muted">분 단위 또는 Cron. 서명 주소를 미리 받아두는 주기입니다(필수 아님).</small></div></div>
     {{ macros.setting_checkbox('main_auto_start', '시작 시 자동실행', value=arg['main_auto_start']) }}
-    <div class="row mb-2"><div class="col-sm-3"><b>소스 URL</b></div>
-      <div class="col-sm-9"><input type="text" class="form-control form-control-sm" id="source_url" name="source_url" value="{{ arg['source_url'] }}"></div></div>
-    <div class="row mb-2"><div class="col-sm-3"><b>로컬 소스 경로</b></div>
-      <div class="col-sm-9"><input type="text" class="form-control form-control-sm" id="source_file" name="source_file" value="{{ arg['source_file'] }}">
-      <small class="text-muted">비우면 사이트에서 직접 수집. 403 이 계속되면 브라우저로 저장한 html/js 파일(또는 폴더) 경로 입력</small></div></div>
     <div class="row mb-2"><div class="col-sm-3"><b>지역 필터</b></div>
       <div class="col-sm-9"><input type="text" class="form-control form-control-sm" id="region_filter" name="region_filter" value="{{ arg['region_filter'] }}">
       <small class="text-muted">비우면 전체. 쉼표 구분 (예: 광주·전남,수도권)</small></div></div>
     {{ macros.setting_select('m3u_url_type', 'M3U 주소 방식', [['redirect','Redirect (플러그인 경유)'], ['direct','Direct (원본 URL)']], col='3', value=arg['m3u_url_type']) }}
+        <p class="small text-muted mt-3">채널 추가: <code>{{ arg['custom_path'] }}</code> 파일에 JSON 배열로 작성 (README 참고)</p>
     {{ macros.m_tab_content_end() }}
 
     {{ macros.m_tab_content_start('api', false) }}
@@ -40,9 +36,9 @@
 </form>
 
 <script type="text/javascript">
-$("body").on('click', '#syncBtn', function (e) {
+$("body").on('click', '#refreshBtn', function (e) {
   e.preventDefault();
-  globalSendCommand('sync', null, null, null, function (ret) {
+  globalSendCommand('refresh', null, null, null, function (ret) {
     notify(ret.msg, ret.ret == 'success' ? 'success' : 'danger');
   });
 });

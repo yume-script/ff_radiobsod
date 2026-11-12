@@ -57,7 +57,7 @@ $("body").on('click', '#list_channel_reload_btn', function(e) {
 
 function get_play_url(channel_id, callback) {
   globalSendCommand('play_url', channel_id, null, null, function(ret){
-    if (ret.data == null) { notify('에러', 'danger'); return; }
+    if (ret.data == null) { notify(ret.msg || '에러', 'danger'); return; }
     callback(ret);
   });
 }
@@ -80,7 +80,7 @@ $("body").on('click', '#play_btn', function(e){
   let id = $(this).closest('tr').prop('title');
   get_play_url(id, function(ret) {
     $('#play_info').html(CH[id].region + ' - ' + CH[id].name);
-    loadSource(ret.data, CH[id].url);
+    loadSource(ret.direct || ret.data, ret.direct || '');
   });
 });
 
@@ -88,7 +88,7 @@ $("body").on('click', '#play_url_btn', function(e){
   e.preventDefault();
   let id = $(this).closest('tr').prop('title');
   get_play_url(id, function(ret) {
-    str = ret.data + '<br><br>' + CH[id].url + '<br><br>';
+    str = '<b>플러그인 주소 (재생 때마다 새 주소로 연결)</b><br>' + ret.data + '<br><br>';
     tmp = j_button('globalCliboardBtn', '클립보드 복사', {'text':ret.data}, 'success');
     tmp += j_button('globalOpenBtn', '새창에서 열기', {'url':ret.data}, 'success');
     str += j_button_group(tmp);
