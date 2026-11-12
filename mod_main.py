@@ -25,6 +25,7 @@ class ModuleMain(PluginModuleBase):
             f"{self.name}_auto_start": "False",
             f"{self.name}_interval": "1440",
             "source_url": "https://radio.bsod.kr/",
+            "source_file": "",  # 접속이 403 일 때: 브라우저로 저장한 html/js 파일 또는 폴더 경로
             "m3u_url_type": "redirect",  # redirect: 플러그인 경유 / direct: 원본 스트림 URL
             "region_filter": "",  # 비우면 전체, 예: 광주·전남,수도권
         }
@@ -41,10 +42,18 @@ class ModuleMain(PluginModuleBase):
     def process_command(self, command, arg1, arg2, arg3, req):
         updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if command == "broad_list":
-            return jsonify({"list": RadioHandler.ch_list(), "updated_at": updated_at})
+            try:
+                return jsonify({"list": RadioHandler.ch_list(), "updated_at": updated_at})
+            except Exception as e:
+                P.logger.error(f"broad_list error: {str(e)}")
+                return jsonify({"list": [], "updated_at": f"에러: {str(e)}"})
         elif command == "sync":
-            n = RadioHandler.sync()
-            return jsonify({"ret": "success", "msg": f"{n}개 채널 동기화 완료"})
+            try:
+                n = RadioHandler.sync()
+                return jsonify({"ret": "success", "msg": f"{n}개 채널 동기화 완료"})
+            except Exception as e:
+                P.logger.error(f"sync error: {str(e)}")
+                return jsonify({"ret": "danger", "msg": f"동기화 실패: {str(e)}"})
         elif command == "play_url":
             url = ToolUtil.make_apikey_url(f"/{P.package_name}/api/url?ch_id={arg1}")
             return jsonify({"ret": "success", "data": url})

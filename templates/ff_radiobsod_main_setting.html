@@ -23,6 +23,9 @@
     {{ macros.setting_checkbox('main_auto_start', '시작 시 자동실행', value=arg['main_auto_start']) }}
     <div class="row mb-2"><div class="col-sm-3"><b>소스 URL</b></div>
       <div class="col-sm-9"><input type="text" class="form-control form-control-sm" id="source_url" name="source_url" value="{{ arg['source_url'] }}"></div></div>
+    <div class="row mb-2"><div class="col-sm-3"><b>로컬 소스 경로</b></div>
+      <div class="col-sm-9"><input type="text" class="form-control form-control-sm" id="source_file" name="source_file" value="{{ arg['source_file'] }}">
+      <small class="text-muted">비우면 사이트에서 직접 수집. 403 이 계속되면 브라우저로 저장한 html/js 파일(또는 폴더) 경로 입력</small></div></div>
     <div class="row mb-2"><div class="col-sm-3"><b>지역 필터</b></div>
       <div class="col-sm-9"><input type="text" class="form-control form-control-sm" id="region_filter" name="region_filter" value="{{ arg['region_filter'] }}">
       <small class="text-muted">비우면 전체. 쉼표 구분 (예: 광주·전남,수도권)</small></div></div>
@@ -40,7 +43,7 @@
 $("body").on('click', '#syncBtn', function (e) {
   e.preventDefault();
   globalSendCommand('sync', null, null, null, function (ret) {
-    notify(ret.msg, 'success');
+    notify(ret.msg, ret.ret == 'success' ? 'success' : 'danger');
   });
 });
 </script>

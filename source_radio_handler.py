@@ -39,14 +39,57 @@ class RadioHandler:
     # ------------------------------------------------------------ scrape
     @classmethod
     def _fetch(cls, url):
+        headers = dict(UA)
+        headers.update({
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8",
+            "Referer": "https://radio.bsod.kr/",
+        })
+        # 1) curl_cffi (크롬 TLS 지문 위장) - 설치돼 있을 때 우선 사용
+        try:
+            from curl_cffi import requests as cr
+            r = cr.get(url, headers=headers, impersonate="chrome", timeout=20)
+            if r.status_code == 200:
+                r.encoding = "utf-8"
+                return r.text
+            P.logger.warning(f"curl_cffi {r.status_code}: {url}")
+        except ImportError:
+            pass
+        except Exception as e:
+            P.logger.warning(f"curl_cffi error: {e}")
+        # 2) 일반 requests
         import requests
-        r = requests.get(url, headers=UA, timeout=20)
-        r.raise_for_status()
-        r.encoding = r.encoding or "utf-8"
+        r = requests.get(url, headers=headers, timeout=20)
+        if r.status_code == 403:
+            # 3) cloudscraper 가 있으면 시도
+            try:
+                import cloudscraper
+                r = cloudscraper.create_scraper().get(url, headers=headers, timeout=20)
+            except ImportError:
+                pass
+        if r.status_code != 200:
+            raise Exception(f"HTTP {r.status_code}: {url} (pip install curl_cffi 후 재시도하거나, 설정의 '로컬 소스 경로'를 사용하세요)")
+        r.encoding = "utf-8"
         return r.text
 
     @classmethod
     def _sources(cls, base):
+        local = (P.ModelSetting.get("source_file") or "").strip()
+        if local:
+            out = {}
+            paths = []
+            if os.path.isdir(local):
+                for fn in sorted(os.listdir(local)):
+                    if fn.lower().endswith((".html", ".htm", ".js", ".json", ".txt")):
+                        paths.append(os.path.join(local, fn))
+            elif os.path.exists(local):
+                paths.append(local)
+            for fp in paths:
+                with open(fp, encoding="utf-8", errors="ignore") as f:
+                    out[fp] = f.read()
+            if not out:
+                raise Exception(f"로컬 소스 경로에 읽을 파일이 없음: {local}")
+            return out
         html = cls._fetch(base)
         out = {base: html}
         for ref in re.findall(r'(?:src|href)=["\']([^"\']+\.(?:js|json)(?:\?[^"\']*)?)["\']', html):

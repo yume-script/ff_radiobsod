@@ -1,5 +1,5 @@
 title: "라디오BSOD"
-version: "0.1.2"
+version: "0.1.3"
 package_name: "ff_radiobsod"
 developer: "me"
 description: "radio.bsod.kr 지역별 라디오 채널 FF플러그인"
